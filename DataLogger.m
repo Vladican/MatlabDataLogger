@@ -5,7 +5,7 @@ function DataLogger
 h.fig = figure('position', [700 300 400 500]);
 ComPorts = getAvailableComPort;
 h.NumMotes = uicontrol('style', 'edit', 'position', [10 450 100 20]);
-h.ComPorts = uicontrol('style', 'popupmenu', 'string', ComPorts(1:end), 'max', 1, 'min', 1, 'position', [120 450 100 20]);
+h.ComPorts = uicontrol('style', 'popupmenu', 'string', ComPorts(1:end), 'max', 1, 'min', 1, 'position', [120 450 100 20], 'callback', {@UpdateList, h});
 h.Rescan = uicontrol('style', 'pushbutton', 'position', [120 475 100 20], 'string', 'Connect', 'callback', {@Connect, h});
 h.StartButton = uicontrol('style', 'pushbutton', 'position', [10 400 100 40], 'string', 'Start', 'callback', {@Start, h});
 h.StopButton = uicontrol('style', 'pushbutton', 'position', [10 350 100 40], 'string', 'Stop', 'callback', {@Stop, h});
@@ -81,10 +81,15 @@ function Stop(hObject, eventdata, h)
     end
     
     %plot data
-    h.plots = figure();
+    h.plot = figure();
+    h.plot2 = figure();
     for i=1:NumMotes
-        plot(NormData.(sprintf('m%d',i)));
+        figure(h.plot);
         hold on;
+        plot(NormData.(sprintf('m%d',i)));
+        figure(h.plot2);
+        hold on;
+        plot(data.(sprintf('m%d',i)));
     end
     %save the data to files
     %save(strcat(date,'-',int2str(round(cputime)),'-','m',int2str(9),'.txt'),x,'-ascii','-double')
@@ -94,11 +99,22 @@ function Connect(hObject, eventdata, h)
 
     global SerialPort; 
     %set(h.ComPorts,'string',getAvailableComPort);
-    values = get(h.ComPorts,'string');
-    PortName = values(get(h.ComPorts, 'value'));
-    disp(PortName);
-    SerialPort = serial(PortName, 'BaudRate', 57600);
-    fopen(SerialPort);
+    if strcmp(get(hObject,'string'),'Connect')
+        values = get(h.ComPorts,'string');
+        PortName = values(get(h.ComPorts, 'value'));
+        disp(PortName);
+        SerialPort = serial(PortName, 'BaudRate', 57600);
+        fopen(SerialPort);
+        set(hObject,'string','Disconnect');
+        set(h.ComPorts,'enable','off');
+    else
+        if (isa(SerialPort,'serial') && isvalid(SerialPort))
+            fclose(SerialPort);
+            delete(SerialPort);
+        end
+        set(hObject,'string','Connect');
+        set(h.ComPorts,'enable','on');
+    end
     
 end
 
@@ -128,5 +144,12 @@ function SaveData(hObject, eventdata, h)
         %save data as matlab file also
         save(strcat(date,'-',num2str(time(4)),'_',num2str(time(5)),'_',num2str(round(time(6))),'-','data.mat'),'data');
     end
+
+end
+
+function UpdateList(hObject, eventdata, h)
+
+    ComPorts = getAvailableComPort;
+    set(hObject,'string',ComPorts(1:end));
 
 end
