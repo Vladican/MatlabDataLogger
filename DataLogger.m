@@ -3,7 +3,13 @@
 %author: Vlad
 function DataLogger
 
-    h.fig = figure('position', [700 300 400 500]);
+    sz = [400 500]; % figure size
+    screensize = get(0,'ScreenSize');
+    % center the figure on the screen horizontally
+    xpos = ceil((screensize(3)-sz(1))/2);
+    % center the figure on the screen vertically
+    ypos = ceil((screensize(4)-sz(2))/2);
+    h.fig = figure('position', [xpos ypos sz(1) sz(2)]);
     ComPorts = getAvailableComPort;
     h.NumMotesBox = uicontrol('style', 'edit', 'position', [10 450 100 20]);
     h.ComPorts = uicontrol('style', 'popupmenu', 'string', ComPorts(1:end), 'max', 1, 'min', 1, 'position', [120 450 100 20], 'callback', {@UpdateList, h});
@@ -98,9 +104,13 @@ function Stop(hObject, eventdata, h)
             for i=1:size(fieldnames(h.data),1)
                 MaxVal = max(h.data.(sprintf('m%d',i)));
                 MinVal = min(h.data.(sprintf('m%d',i)));
-                for n=1:size(h.data.(sprintf('m%d',i)),1)
-                    NormData.(sprintf('m%d',i))(n,1) = (h.data.(sprintf('m%d',i))(n,1)-MinVal)/(MaxVal-MinVal) + ((i-1)*2);
-                end    
+                if size(h.data.(sprintf('m%d',i)),1) == 0
+                    NormData.(sprintf('m%d',i)) = [];
+                else
+                    for n=1:size(h.data.(sprintf('m%d',i)),1)
+                        NormData.(sprintf('m%d',i))(n,1) = (h.data.(sprintf('m%d',i))(n,1)-MinVal)/(MaxVal-MinVal) + ((i-1)*2);
+                    end 
+                end
             end
 
             %create 2 new figures and add their handles to the array
@@ -118,7 +128,7 @@ function Stop(hObject, eventdata, h)
                 hold on;
                 plot(NormData.(sprintf('m%d',i)));
                 figure(h.plots(end));
-                hold on;
+                hold all;
                 plot(h.data.(sprintf('m%d',i)));
             end
 
